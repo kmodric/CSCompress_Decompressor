@@ -20,6 +20,53 @@ This repository contains multiple standalone implementations of the same idea, c
 
 All versions were created to help analyze and recover SAP Content Server files compressed with CSCompress, without requiring direct SAP system access.
 
+## Technical Details
+
+In the validated sample set used by this project, SAP Content Server stores the compressed document inside a **CSCompress container** with an **8-byte header** followed by the compressed payload.
+
+The header layout is interpreted as follows:
+
+- **bytes 0..3**: original uncompressed file length, stored as a **little-endian 32-bit integer**
+- **byte 4**: combined **version/algorithm** field  
+  - high nibble = version  
+  - low nibble = algorithm
+- **bytes 5..6**: constant CSCompress magic bytes: `1F 9D`
+- **byte 7**: `special` field, used by the validated algorithm 2 variant
+
+For example, a header such as:
+
+```text
+F4 06 00 00 12 1F 9D 02
+```
+can be interpreted as:
+
+original file size = 0x000006F4 = 1780 bytes
+version = 1
+algorithm = 2
+magic = 1F 9D
+special = 2
+Compression Variant
+
+The validated files in this repository use algorithm 2, which corresponds to the SAP CSCompress variant commonly referred to as LZH in SAP-related source code.
+
+However, in the tested file pairs, the payload following the 8-byte CSCompress header can be reconstructed by treating it as a raw DEFLATE stream after removing a small SAP-specific bit prefix.
+
+How Decompression Works
+
+The standalone decompressor performs the following steps:
+
+Read the first 8 bytes of the file.
+Extract the original file size from bytes 0..3.
+Read the version and algorithm from byte 4.
+Verify the CSCompress magic bytes 1F 9D.
+Extract the payload starting at byte 8.
+For algorithm 2, interpret the beginning of the payload as an SAP-specific bit prefix:
+the first 2 bits (LSB-first) encode a small value x
+then x additional prefix bits are skipped
+The remaining payload is then decompressed as raw DEFLATE.
+The output length is validated against the original file size stored in the header.
+
+
 ## Important Note
 
 This project is currently **tested and validated using PDF files** compressed in SAP Content Server.
