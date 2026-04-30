@@ -41,10 +41,15 @@ F4 06 00 00 12 1F 9D 02
 can be interpreted as:
 
 original file size = 0x000006F4 = 1780 bytes
+
 version = 1
+
 algorithm = 2
+
 magic = 1F 9D
+
 special = 2
+
 Compression Variant
 
 The validated files in this repository use algorithm 2, which corresponds to the SAP CSCompress variant commonly referred to as LZH in SAP-related source code.
